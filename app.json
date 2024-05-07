@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "LanguageLearningExpoApp",
+    "slug": "LanguageLearningExpoApp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.fenix232.LanguageLearningExpoApp"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "058a5c08-8f59-4986-8356-25a1718f5c80"
+      }
+    },
+    "sdkVersion": "50.0.0"
+  },
+  "name": "languagelearningexpoapp"
+}
