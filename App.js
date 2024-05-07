@@ -26,8 +26,6 @@ export default function App() {
         // Загрузка шрифтов и инициализация базы данных
         await database.initDB();
         await database.fetchUsers();
-        await database.exportDatabaseFile();
-        await database.moveDatabaseToFileSystem();
       } catch (e) {
         console.warn(e);
       } finally {
@@ -44,9 +42,9 @@ export default function App() {
   }
 
 
-  return (
-    <StackNavigator/>
-  );
+ return (
+     <StackNavigator />
+ );
 }
 
 const styles = StyleSheet.create({

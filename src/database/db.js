@@ -1,7 +1,8 @@
 import * as SQLite from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
+import defaultWordsData from "./defaultWordsData";
 
-export const db = SQLite.openDatabase("LanguageLearning1.db");
+export const db = SQLite.openDatabase("LanguageLearning2.db");
 
 export const initDB = () => {
   db.transaction(
@@ -9,62 +10,98 @@ export const initDB = () => {
       // Создаем таблицу Users
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS Users (
-        firebase_uid TEXT PRIMARY KEY UNIQUE NOT NULL,
-        Email TEXT NOT NULL,
-        CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );`
+          firebase_uid TEXT PRIMARY KEY UNIQUE NOT NULL,
+          Email TEXT NOT NULL,
+          CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );`
+      );
+
+      // Создаем таблицу Languages
+      tx.executeSql(
+        `CREATE TABLE IF NOT EXISTS Languages (
+          LanguageID INTEGER PRIMARY KEY AUTOINCREMENT,
+          Code TEXT NOT NULL,
+          Name TEXT NOT NULL
+        );`
       );
 
       // Создаем таблицу Categories
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS Categories (
-        CategoryID INTEGER PRIMARY KEY AUTOINCREMENT,
-        firebase_uid TEXT NOT NULL,
-        Name TEXT NOT NULL,
-        ImageURL TEXT,
-        CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (firebase_uid) REFERENCES Users(firebase_uid)
-      );`
+          CategoryID INTEGER PRIMARY KEY AUTOINCREMENT,
+          firebase_uid TEXT NOT NULL,
+          LanguageID INTEGER NOT NULL,
+          Name TEXT NOT NULL,
+          ImageURL TEXT,
+          CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (firebase_uid) REFERENCES Users(firebase_uid),
+          FOREIGN KEY (LanguageID) REFERENCES Languages(LanguageID)
+        );`
       );
 
       // Создаем таблицу Words
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS Words (
-        WordID INTEGER PRIMARY KEY AUTOINCREMENT,
-        CategoryID INTEGER NOT NULL,
-        EnglishWord TEXT NOT NULL,
-        Transcription TEXT,
-        Translation TEXT NOT NULL,
-        Example TEXT,
-        ExampleTranslation TEXT,
-        CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID)
-      );`
+          WordID INTEGER PRIMARY KEY AUTOINCREMENT,
+          CategoryID INTEGER NOT NULL,
+          EnglishWord TEXT NOT NULL,
+          Transcription TEXT,
+          Translation TEXT NOT NULL,
+          Example TEXT,
+          ExampleTranslation TEXT,
+          CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID)
+        );`
       );
 
       // Создаем таблицу StudySessions
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS StudySessions (
-        SessionID INTEGER PRIMARY KEY AUTOINCREMENT,
-        firebase_uid TEXT NOT NULL,
-        Mode INTEGER NOT NULL, -- 1 for new words, 2 for review, 3 for mixed
-        CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (firebase_uid) REFERENCES Users(firebase_uid)
-      );`
+          SessionID INTEGER PRIMARY KEY AUTOINCREMENT,
+          firebase_uid TEXT NOT NULL,
+          Mode INTEGER NOT NULL, -- 1 for new words, 2 for review, 3 for mixed
+          CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (firebase_uid) REFERENCES Users(firebase_uid)
+        );`
       );
 
       // Создаем таблицу WordProgress
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS WordProgress (
-        WordID INTEGER NOT NULL,
-        SessionID INTEGER NOT NULL,
-        Status INTEGER NOT NULL, -- 0 for learning, 1 for known, etc.
-        Attempts INTEGER DEFAULT 0,
-        LastSeen TIMESTAMP,
-        FOREIGN KEY (WordID) REFERENCES Words(WordID),
-        FOREIGN KEY (SessionID) REFERENCES StudySessions(SessionID),
-        PRIMARY KEY (WordID, SessionID)
-      );`
+          WordID INTEGER NOT NULL,
+          SessionID INTEGER NOT NULL,
+          Status INTEGER NOT NULL, -- 0 for learning, 1 for known, etc.
+          Attempts INTEGER DEFAULT 0,
+          LastSeen TIMESTAMP,
+          FOREIGN KEY (WordID) REFERENCES Words(WordID),
+          FOREIGN KEY (SessionID) REFERENCES StudySessions(SessionID),
+          PRIMARY KEY (WordID, SessionID)
+        );`
+      );
+
+      // Добавляем начальные данные в таблицу Languages
+      tx.executeSql(
+        `SELECT COUNT(*) AS count FROM Languages;`,
+        [],
+        (_, { rows }) => {
+          if (rows.item(0).count === 0) {
+            // Если в таблице нет записей, добавляем начальные данные
+            tx.executeSql(
+              `INSERT INTO Languages (Code, Name) VALUES ('en', 'English');`
+            );
+            tx.executeSql(
+              `INSERT INTO Languages (Code, Name) VALUES ('de', 'German');`
+            );
+            tx.executeSql(
+              `INSERT INTO Languages (Code, Name) VALUES ('fr', 'French');`
+            );
+          } else {
+            console.log("Languages already initialized.");
+          }
+        },
+        (_, error) => {
+          console.error("Failed to check languages count:", error);
+        }
       );
     },
     (error) => {
@@ -77,37 +114,47 @@ export const initDB = () => {
 };
 
 export const addDefaultCategories = (userID, dbTransaction) => {
+  // Предполагается, что languageID представляет собой числовой ID, соответствующий языкам в таблице Languages
+  // Например: 1 для английского, 2 для немецкого, 3 для французского
   const defaultCategories = [
     {
       name: "Анатомия",
       imageURL:
         "https://firebasestorage.googleapis.com/v0/b/languagelearningexpoapp.appspot.com/o/categoryIcon%2Fanatomy.png?alt=media&token=ad052311-c378-4cee-8012-30366fd0fdc1",
+      languages: [1, 2, 3], // ID для английского, немецкого и французского языков
     },
     {
       name: "Искусство",
       imageURL:
         "https://firebasestorage.googleapis.com/v0/b/languagelearningexpoapp.appspot.com/o/categoryIcon%2Fart.png?alt=media&token=7e7d04fd-1f9b-4298-9677-8b60dfa6a5f0",
+      languages: [1, 2, 3],
     },
     {
       name: "Путешествия",
       imageURL:
         "https://firebasestorage.googleapis.com/v0/b/languagelearningexpoapp.appspot.com/o/categoryIcon%2Ftravel.png?alt=media&token=c04c918f-baf7-4665-8554-2aa1d1fc1c79",
+      languages: [1, 2, 3],
     },
   ];
 
-  defaultCategories.forEach(({ name, imageURL }) => {
-    dbTransaction.executeSql(
-      `INSERT INTO Categories (firebase_uid, Name, ImageURL) VALUES (?, ?, ?);`,
-      [userID, name, imageURL],
-      () => {
-        console.log(
-          `Категория '${name}' добавлена для пользователя с ID: ${userID}`
-        );
-      },
-      (_, error) => {
-        console.log(`Ошибка при добавлении категории '${name}':`, error);
-      }
-    );
+  defaultCategories.forEach(({ name, imageURL, languages }) => {
+    languages.forEach((languageID) => {
+      dbTransaction.executeSql(
+        `INSERT INTO Categories (firebase_uid, LanguageID, Name, ImageURL) VALUES (?, ?, ?, ?);`,
+        [userID, languageID, name, imageURL],
+        () => {
+          console.log(
+            `Категория '${name}' (${languageID}) добавлена для пользователя с ID: ${userID}`
+          );
+        },
+        (_, error) => {
+          console.log(
+            `Ошибка при добавлении категории '${name}' (${languageID}):`,
+            error
+          );
+        }
+      );
+    });
   });
 };
 
@@ -147,7 +194,6 @@ export const addDefaultWords = (dbTransaction) => {
     );
   });
 };
-
 
 export const addUser = (firebase_uid, email, tx, callback) => {
   tx.executeSql(
@@ -209,94 +255,11 @@ export const fetchCategories = (userID, callback) => {
 };
 
 export const addWordsToCategories = (userID, dbTransaction) => {
-  const defaultWords = [
-    {
-      categoryName: "Анатомия",
-      words: [
-        {
-          englishWord: "Heart",
-          transcription: "hɑːrt",
-          translation: "Сердце",
-          example: "His heart was beating fast.",
-          exampleTranslation: "Его сердце билось быстро.",
-        },
-        {
-          englishWord: "Brain",
-          transcription: "breɪn",
-          translation: "Мозг",
-          example: "The human brain is an incredible organ.",
-          exampleTranslation: "Человеческий мозг - удивительный орган.",
-        },
-        {
-          englishWord: "Lung",
-          transcription: "lʌŋ",
-          translation: "Легкое",
-          example: "Lungs are essential for breathing.",
-          exampleTranslation: "Легкие необходимы для дыхания.",
-        },
-      ],
-    },
-    {
-      categoryName: "Искусство",
-      words: [
-        {
-          englishWord: "Painting",
-          transcription: "ˈpeɪntɪŋ",
-          translation: "Картина",
-          example: "I saw an amazing painting in the gallery.",
-          exampleTranslation: "Я видел удивительную картину в галерее.",
-        },
-        {
-          englishWord: "Sculpture",
-          transcription: "ˈskʌlptʃə",
-          translation: "Скульптура",
-          example: "The park is famous for its modern sculptures.",
-          exampleTranslation: "Парк знаменит своими современными скульптурами.",
-        },
-        {
-          englishWord: "Canvas",
-          transcription: "ˈkænvəs",
-          translation: "Холст",
-          example: "The artist painted her masterpiece on a large canvas.",
-          exampleTranslation: "Художник написал свой шедевр на большом холсте.",
-        },
-      ],
-    },
-    {
-      categoryName: "Путешествия",
-      words: [
-        {
-          englishWord: "Backpack",
-          transcription: "ˈbækˌpæk",
-          translation: "Рюкзак",
-          example: "He packed his backpack for the journey.",
-          exampleTranslation: "Он упаковал свой рюкзак для путешествия.",
-        },
-        {
-          englishWord: "Suitcase",
-          transcription: "ˈsuːtˌkeɪs",
-          translation: "Чемодан",
-          example: "She bought a new suitcase for her travels.",
-          exampleTranslation: "Она купила новый чемодан для своих путешествий.",
-        },
-        {
-          englishWord: "Destination",
-          transcription: "ˌdɛstɪˈneɪʃən",
-          translation: "Пункт назначения",
-          example: "Their destination was a remote island in the Pacific.",
-          exampleTranslation:
-            "Их пунктом назначения был удаленный остров в Тихом океане.",
-        },
-      ],
-    },
-    // Добавьте другие категории
-  ];
-
-  defaultWords.forEach(({ categoryName, words }) => {
-    // Получаем CategoryID по имени и userID
+  defaultWordsData.forEach(({ languageID, categoryName, words }) => {
+    // Получаем CategoryID по имени, userID и LanguageID
     dbTransaction.executeSql(
-      `SELECT CategoryID FROM Categories WHERE firebase_uid = ? AND Name = ?;`,
-      [userID, categoryName],
+      `SELECT CategoryID FROM Categories WHERE firebase_uid = ? AND Name = ? AND LanguageID = ?;`,
+      [userID, categoryName, languageID],
       (_, { rows }) => {
         if (rows._array.length > 0) {
           const categoryID = rows._array[0].CategoryID;
@@ -322,23 +285,25 @@ export const addWordsToCategories = (userID, dbTransaction) => {
                 ],
                 () =>
                   console.log(
-                    `Слово '${englishWord}' добавлено в категорию '${categoryName}'`
+                    `Слово '${englishWord}' добавлено в категорию '${categoryName}' (${languageID})`
                   ),
                 (_, error) =>
                   console.log(
-                    `Ошибка при добавлении слова '${englishWord}':`,
+                    `Ошибка при добавлении слова '${englishWord}' (${languageID}):`,
                     error
                   )
               );
             }
           );
         } else {
-          console.log(`Категория '${categoryName}' не найдена.`);
+          console.log(
+            `Категория '${categoryName}' (${languageID}) не найдена.`
+          );
         }
       },
       (_, error) =>
         console.log(
-          `Ошибка при получении ID категории '${categoryName}':`,
+          `Ошибка при получении ID категории '${categoryName}' (${languageID}):`,
           error
         )
     );
@@ -350,26 +315,19 @@ export const addWordsToCategories = (userID, dbTransaction) => {
 export const resetDB = () => {
   db.transaction(
     (tx) => {
-      // Удаляем все записи из таблицы WordProgress
-      tx.executeSql(`DELETE FROM WordProgress;`);
-
-      // Удаляем все записи из таблицы StudySessions
-      tx.executeSql(`DELETE FROM StudySessions;`);
-
-      // Удаляем все записи из таблицы Words
-      tx.executeSql(`DELETE FROM Words;`);
-
-      // Удаляем все записи из таблицы Categories
-      tx.executeSql(`DELETE FROM Categories;`);
-
-      // Удаляем все записи из таблицы Users
-      tx.executeSql(`DELETE FROM Users;`);
+      tx.executeSql(`DROP TABLE IF EXISTS WordProgress;`);
+      tx.executeSql(`DROP TABLE IF EXISTS StudySessions;`);
+      tx.executeSql(`DROP TABLE IF EXISTS Words;`);
+      tx.executeSql(`DROP TABLE IF EXISTS Categories;`);
+      tx.executeSql(`DROP TABLE IF EXISTS Languages;`);
+      tx.executeSql(`DROP TABLE IF EXISTS Users;`);
     },
     (error) => {
-      console.log("Ошибка при сбросе данных БД", error);
+      console.log("Ошибка при удалении таблиц", error);
     },
     () => {
-      console.log("Все данные в БД успешно сброшены");
+      console.log("Все таблицы успешно удалены");
+      initDB(); // Переинициализация БД
     }
   );
 };
@@ -604,7 +562,6 @@ export const moveDatabaseToFileSystem = async () => {
     console.error("Failed to move database file:", error);
   }
 };
-
 
 export const database = {
   initDB,
