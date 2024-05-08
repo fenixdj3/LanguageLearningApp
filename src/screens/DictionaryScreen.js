@@ -14,6 +14,7 @@ import { addCategory, fetchCategories } from "../database/db";
 import useAuth from "../services/useAuth";
 import Modal from "react-native-modal";
 import IconPicker from "../components/IconPicker";
+import { useLanguage } from "../services/LanguageContext";
 
 const screenHeight = Dimensions.get("window").height;
 
@@ -145,7 +146,14 @@ const CategoryInput = styled.TextInput`
   color: #e7e6f9;
 `;
 
+const TITLE_BY_LANGUAGE_ID = {
+  1: "Словарь Английского", // Пример для английского
+  2: "Словарь Немецкого", // Пример для немецкого
+  3: "Словарь Французкого", // Пример для французского
+};
+
 const CategoryItem = ({
+  languageID,
   icon,
   title,
   count,
@@ -169,11 +177,12 @@ const CategoryItem = ({
   }
 
   const handleEditCategory = () => {
-    console.log("CategoryID:", { categoryID });
+    console.log("CategoryID:", { categoryID },"LanguageID:");
     navigation.navigate("EditCategory", {
       categoryID: categoryID,
       categoryName: title,
       categoryIcon: icon,
+      languageID: languageID,
       refreshCategories: refreshCategories,
     });
   };
@@ -224,14 +233,15 @@ const DictionaryScreen = ({ navigation }) => {
   const [isModalVisible, setModalVisible] = useState(false);
   const { user } = useAuth();
   const [categories, setCategories] = useState([]);
+  const { languageID } = useLanguage();
 
   const toggleModal = () => {
     setModalVisible(!isModalVisible);
   };
 
   const refreshCategories = useCallback(() => {
-    if (user && user.uid) {
-      fetchCategories(user.uid, (fetchedCategories) => {
+    if (user && user.uid && languageID) {
+      fetchCategories(user.uid, languageID, (fetchedCategories) => {
         setCategories(
           fetchedCategories.map((category) => ({
             ...category,
@@ -240,20 +250,28 @@ const DictionaryScreen = ({ navigation }) => {
         );
       });
     }
-  }, [user]);
+  }, [user, languageID]);
 
   const handleSaveCategory = () => {
     if (categoryName.trim() !== "") {
-      addCategory(user.uid, categoryName, selectedIcon, refreshCategories); // Передаем функцию обновления списка категорий в качестве колбэка
+    addCategory(
+      user.uid,
+      languageID,
+      categoryName,
+      selectedIcon,
+      refreshCategories
+    );
       setCategoryName(""); // Очищаем поле ввода после сохранения
       setSelectedIcon(null); // Сбрасываем выбранный иконка
       toggleModal(); // Закрываем модальное окно после сохранения
     }
   };
 
+  const titleText = TITLE_BY_LANGUAGE_ID[languageID] || "Словарь";
+
   useEffect(() => {
     refreshCategories();
-  }, [refreshCategories]);
+  }, [refreshCategories]); 
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -267,7 +285,7 @@ const DictionaryScreen = ({ navigation }) => {
           ListHeaderComponent={
             <>
               <Header>
-                <Title>Словарь</Title>
+                <Title>{titleText}</Title>
                 <TouchableOpacity
                   onPress={refreshCategories}
                   style={{ alignSelf: "center", marginRight: 25 }}
@@ -314,6 +332,7 @@ const DictionaryScreen = ({ navigation }) => {
               {...item}
               index={index}
               totalCount={categories.length}
+              languageID={item.LanguageID}
               icon={item.icon}
               title={item.Name}
               count={`${item.WordCount} слов`}

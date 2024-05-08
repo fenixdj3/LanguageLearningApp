@@ -220,13 +220,20 @@ const WordButton = ({
   totalCount,
   englishWord,
   translateWord,
+  languageID,
 }) => {
   const isFirst = index === 0;
   const isLast = index === totalCount - 1;
 
   const speechPress = (text) => {
+    let languageCode = "en-US";
+    if (languageID === 2) {
+      languageCode = "de-DE"; 
+    } else if (languageID === 3) {
+      languageCode = "fr-FR"; 
+    }
     Speech.speak(text, {
-      language: "en", // Установите язык на английский
+      language: languageCode, // Установите язык на английский
       rate: 1.0, // Скорость произношения
     });
   };
@@ -286,7 +293,7 @@ const AddExampleButton = ({onPress,title, url }) => {
 };
 
 const EditCategoryScreen = ({ route, navigation }) => {
-  const { categoryName, categoryID, categoryIcon } = route.params;
+  const { categoryName, categoryID, categoryIcon, languageID } = route.params;
   const [words, setWords] = useState([]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isExampleVisible, setIsExampleVisible] = useState(false);
@@ -349,9 +356,15 @@ const EditCategoryScreen = ({ route, navigation }) => {
     setWordText(text);
 
     if (text.length >= 2) {
+      let languagePair = "en-ru"; // Значение по умолчанию
+      if (languageID === 2) {
+        languagePair = "de-ru"; // Немецкий на русский
+      } else if (languageID === 3) {
+        languagePair = "fr-ru"; // Французский на русский
+      }
       try {
         const response = await fetch(
-          `https://dictionary.yandex.net/api/v1/dicservice.json/lookup?key=dict.1.1.20240313T145636Z.36876f40f24f0ebf.035f2b16f1c22383233c8aa31b942111cb419462&lang=en-ru&text=${encodeURIComponent(
+          `https://dictionary.yandex.net/api/v1/dicservice.json/lookup?key=dict.1.1.20240313T145636Z.36876f40f24f0ebf.035f2b16f1c22383233c8aa31b942111cb419462&lang=${languagePair}&text=${encodeURIComponent(
             text
           )}`
         );
@@ -470,6 +483,7 @@ const EditCategoryScreen = ({ route, navigation }) => {
       onPress={() => console.log("Нажата кнопка для слова:", word.EnglishWord)}
       englishWord={word.EnglishWord}
       translateWord={word.Translation}
+      languageID={languageID}
       speechPress={() => {
         /* Здесь можно реализовать воспроизведение произношения слова */
       }}

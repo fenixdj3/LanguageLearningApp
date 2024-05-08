@@ -226,33 +226,34 @@ const fetchUsers = () => {
   });
 };
 
-export const fetchCategories = (userID, callback) => {
+export const fetchCategories = (userID, languageID, callback) => {
   db.transaction((tx) => {
     tx.executeSql(
       `SELECT 
         CategoryID,
         Name,
         ImageURL,
+        LanguageID,
         (SELECT COUNT(*) FROM Words WHERE Words.CategoryID = Categories.CategoryID) AS WordCount,
         0 AS Progress
       FROM Categories 
-      WHERE firebase_uid = ?;`,
-      [userID],
+      WHERE firebase_uid = ? AND LanguageID = ?;`, // Фильтрация по LanguageID
+      [userID, languageID],
       (_, { rows: { _array } }) => {
-        // Формируем URL иконок уже здесь, после получения данных из БД
         const categoriesWithIcons = _array.map((category) => ({
           ...category,
-          icon: `https://storage.googleapis.com/languagelearningexpoapp.appspot.com/categoryIcon/${category.ImageURL}`, // Пример формирования HTTP URL на основе ImageURL
+          icon: `https://storage.googleapis.com/languagelearningexpoapp.appspot.com/categoryIcon/${category.ImageURL}`,
         }));
         callback(categoriesWithIcons);
       },
       (_, error) => {
         console.log("Ошибка при получении категорий:", error);
-        return true; // для предотвращения пропаганды ошибки
+        return true;
       }
     );
   });
 };
+
 
 export const addWordsToCategories = (userID, dbTransaction) => {
   defaultWordsData.forEach(({ languageID, categoryName, words }) => {
@@ -360,23 +361,29 @@ export const dropTables = () => {
 };
 
 //Добавляет категорию по пользователю, названии категории и изображения
-export const addCategory = (firebaseUid, categoryName, imageUrl, callback) => {
+export const addCategory = (
+  firebaseUid,
+  languageID,
+  categoryName,
+  imageUrl,
+  callback
+) => {
   db.transaction(
     (tx) => {
       tx.executeSql(
-        `INSERT INTO Categories (firebase_uid, Name, ImageURL) VALUES (?, ?, ?);`,
-        [firebaseUid, categoryName, imageUrl],
+        `INSERT INTO Categories (firebase_uid, LanguageID, Name, ImageURL) VALUES (?, ?, ?, ?);`,
+        [firebaseUid, languageID, categoryName, imageUrl], // Добавляем languageID в запрос
         (_, result) => {
-          console.log("Category added successfully:", result);
+          console.log("Категория успешно добавлена:", result);
           callback(); // Вызываем колбэк для обновления списка категорий
         },
         (_, error) => {
-          console.error("Error adding category:", error);
+          console.error("Ошибка при добавлении категории:", error);
         }
       );
     },
     (error) => {
-      console.error("Transaction error:", error);
+      console.error("Ошибка транзакции:", error);
     }
   );
 };

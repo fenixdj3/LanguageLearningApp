@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useCallback, useEffect } from "react";
+import { LanguageProvider } from "./src/services/LanguageContext";
 import StackNavigator from "./src/navigation/StackNavigator";
 import "react-native-gesture-handler";
 import { database } from "./src/database/db";
@@ -43,7 +44,9 @@ export default function App() {
 
 
  return (
+  <LanguageProvider>
      <StackNavigator />
+  </LanguageProvider>
  );
 }
 

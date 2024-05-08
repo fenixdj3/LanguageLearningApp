@@ -2,12 +2,13 @@
 TODO: Выдает ошибку при добавлении контекста в app.js
 FIXME: Исправить её
 */
-import React, { createContext, useState, useContext } from "react";
+// LanguageContext.js
+import React, { createContext, useState, useContext } from 'react';
 
-const LanguageContext = createContext();
+const LanguageContext = createContext(null); // Создаем контекст с начальным значением null
 
 export const LanguageProvider = ({ children }) => {
-  const [languageID, setLanguageID] = useState(1); // По умолчанию, например, English
+  const [languageID, setLanguageID] = useState(1); // Начальное значение для languageID, например, 1
 
   return (
     <LanguageContext.Provider value={{ languageID, setLanguageID }}>
@@ -16,4 +17,5 @@ export const LanguageProvider = ({ children }) => {
   );
 };
 
-export const useLanguage = () => useContext(LanguageContext);
+export const useLanguage = () => useContext(LanguageContext); // Хук для удобства использования контекста
+

@@ -3,6 +3,7 @@ import { View, Modal, StyleSheet, Linking, Text } from "react-native";
 import { signOut } from "firebase/auth";
 import { auth } from "../services/firebase";
 import styled from "styled-components/native";
+import LanguagePicker from "../components/LanguagePicker";
 
 
 // Reusing the styled components for button and button text
@@ -52,6 +53,7 @@ function SettingsScreen() {
 
   return (
     <Container>
+      <LanguagePicker/>
       <Button variant="primary" onPress={() => setModalVisible(true)}>
         <ButtonText>О приложении</ButtonText>
       </Button>
