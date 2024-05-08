@@ -25,7 +25,7 @@ const SuggestionText = styled.Text`
 
 const SuggestionList = ({ suggestions, onSuggestionSelect }) => {
   const handleSuggestionPress = (translation, transcription, examples) => {
-    onSuggestionSelect(translation, transcription,examples);
+    onSuggestionSelect(translation, transcription, examples);
     console.log("Выбранное слово:", translation);
     console.log(
       "Транскрипция:",
@@ -48,7 +48,7 @@ const SuggestionList = ({ suggestions, onSuggestionSelect }) => {
               handleSuggestionPress(
                 item.translation,
                 item.transcription,
-                item.examples // Pass the examples array to the press handler
+                item.examples, // Pass the examples array to the press handler
               )
             }
           >
