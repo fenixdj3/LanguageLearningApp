@@ -149,7 +149,7 @@ const CategoryInput = styled.TextInput`
 const TITLE_BY_LANGUAGE_ID = {
   1: "Словарь Английского", // Пример для английского
   2: "Словарь Немецкого", // Пример для немецкого
-  3: "Словарь Французкого", // Пример для французского
+  3: "Словарь Французского", // Пример для французского
 };
 
 const CategoryItem = ({
@@ -177,7 +177,7 @@ const CategoryItem = ({
   }
 
   const handleEditCategory = () => {
-    console.log("CategoryID:", { categoryID },"LanguageID:");
+    console.log("CategoryID:", { categoryID }, "LanguageID:");
     navigation.navigate("EditCategory", {
       categoryID: categoryID,
       categoryName: title,
@@ -201,7 +201,9 @@ const CategoryItem = ({
               style={{ width: `${Math.min(progress, 100)}%` }}
             />
           </ProgressBarBackground>
-          <ProgressText>{`${Math.min(progress, 100)}%`}</ProgressText>
+          <ProgressText>{`${Math.min(progress, 100).toFixed(
+            1
+          )}%`}</ProgressText>
         </CategoryInfo>
       </CategoryRow>
     </CategoryItemContainer>
@@ -254,13 +256,13 @@ const DictionaryScreen = ({ navigation }) => {
 
   const handleSaveCategory = () => {
     if (categoryName.trim() !== "") {
-    addCategory(
-      user.uid,
-      languageID,
-      categoryName,
-      selectedIcon,
-      refreshCategories
-    );
+      addCategory(
+        user.uid,
+        languageID,
+        categoryName,
+        selectedIcon,
+        refreshCategories
+      );
       setCategoryName(""); // Очищаем поле ввода после сохранения
       setSelectedIcon(null); // Сбрасываем выбранный иконка
       toggleModal(); // Закрываем модальное окно после сохранения
@@ -271,7 +273,7 @@ const DictionaryScreen = ({ navigation }) => {
 
   useEffect(() => {
     refreshCategories();
-  }, [refreshCategories]); 
+  }, [refreshCategories]);
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>

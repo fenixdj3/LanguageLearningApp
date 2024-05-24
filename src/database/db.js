@@ -7,7 +7,6 @@ export const db = SQLite.openDatabase("LanguageLearning2.db");
 export const initDB = () => {
   db.transaction(
     (tx) => {
-      // Создаем таблицу Users
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS Users (
           firebase_uid TEXT PRIMARY KEY UNIQUE NOT NULL,
@@ -16,7 +15,6 @@ export const initDB = () => {
         );`
       );
 
-      // Создаем таблицу Languages
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS Languages (
           LanguageID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,7 +23,6 @@ export const initDB = () => {
         );`
       );
 
-      // Создаем таблицу Categories
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS Categories (
           CategoryID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -39,7 +36,6 @@ export const initDB = () => {
         );`
       );
 
-      // Создаем таблицу Words
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS Words (
           WordID INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -54,28 +50,19 @@ export const initDB = () => {
         );`
       );
 
-      // Создаем таблицу StudySessions
-      tx.executeSql(
-        `CREATE TABLE IF NOT EXISTS StudySessions (
-          SessionID INTEGER PRIMARY KEY AUTOINCREMENT,
-          firebase_uid TEXT NOT NULL,
-          Mode INTEGER NOT NULL, -- 1 for new words, 2 for review, 3 for mixed
-          CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (firebase_uid) REFERENCES Users(firebase_uid)
-        );`
-      );
-
-      // Создаем таблицу WordProgress
       tx.executeSql(
         `CREATE TABLE IF NOT EXISTS WordProgress (
           WordID INTEGER NOT NULL,
-          SessionID INTEGER NOT NULL,
-          Status INTEGER NOT NULL, -- 0 for learning, 1 for known, etc.
+          firebase_uid TEXT NOT NULL,
+          Status INTEGER NOT NULL, -- 0 для изучения, 1 для известных слов и т.д.
           Attempts INTEGER DEFAULT 0,
           LastSeen TIMESTAMP,
+          NextReviewDate TIMESTAMP,
+          Interval INTEGER DEFAULT 1,
+          EaseFactor REAL DEFAULT 2.5,
+          PRIMARY KEY (WordID, firebase_uid),
           FOREIGN KEY (WordID) REFERENCES Words(WordID),
-          FOREIGN KEY (SessionID) REFERENCES StudySessions(SessionID),
-          PRIMARY KEY (WordID, SessionID)
+          FOREIGN KEY (firebase_uid) REFERENCES Users(firebase_uid)
         );`
       );
 
@@ -85,7 +72,6 @@ export const initDB = () => {
         [],
         (_, { rows }) => {
           if (rows.item(0).count === 0) {
-            // Если в таблице нет записей, добавляем начальные данные
             tx.executeSql(
               `INSERT INTO Languages (Code, Name) VALUES ('en', 'English');`
             );
@@ -230,21 +216,27 @@ export const fetchCategories = (userID, languageID, callback) => {
   db.transaction((tx) => {
     tx.executeSql(
       `SELECT 
-        CategoryID,
-        Name,
-        ImageURL,
-        LanguageID,
-        (SELECT COUNT(*) FROM Words WHERE Words.CategoryID = Categories.CategoryID) AS WordCount,
-        0 AS Progress
-      FROM Categories 
-      WHERE firebase_uid = ? AND LanguageID = ?;`, // Фильтрация по LanguageID
-      [userID, languageID],
+        c.CategoryID,
+        c.Name,
+        c.ImageURL,
+        c.LanguageID,
+        (SELECT COUNT(*) FROM Words WHERE Words.CategoryID = c.CategoryID) AS WordCount,
+        (SELECT COUNT(*) FROM Words w 
+         JOIN WordProgress wp ON w.WordID = wp.WordID 
+         WHERE w.CategoryID = c.CategoryID AND wp.firebase_uid = ?) AS KnownWordsCount
+      FROM Categories c
+      WHERE c.firebase_uid = ? AND c.LanguageID = ?;`,
+      [userID, userID, languageID],
       (_, { rows: { _array } }) => {
-        const categoriesWithIcons = _array.map((category) => ({
+        const categoriesWithProgress = _array.map((category) => ({
           ...category,
           icon: `https://storage.googleapis.com/languagelearningexpoapp.appspot.com/categoryIcon/${category.ImageURL}`,
+          Progress:
+            category.WordCount > 0
+              ? (category.KnownWordsCount / category.WordCount) * 100
+              : 0,
         }));
-        callback(categoriesWithIcons);
+        callback(categoriesWithProgress);
       },
       (_, error) => {
         console.log("Ошибка при получении категорий:", error);
@@ -480,13 +472,6 @@ export const addWord = (
   });
 };
 
-export const shuffleArray = (array) => {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]]; // обмен элементами
-  }
-  return array;
-};
 
 export const getRandomWordsForCurrentUser = async (userID, callback) => {
   db.transaction(
@@ -570,6 +555,208 @@ export const moveDatabaseToFileSystem = async () => {
   }
 };
 
+export const getNewWordsForCurrentUser = async (
+  userID,
+  languageID,
+  callback
+) => {
+  db.transaction(
+    (tx) => {
+      tx.executeSql(
+        `SELECT * FROM Words 
+         WHERE CategoryID IN (SELECT CategoryID FROM Categories WHERE firebase_uid = ? AND LanguageID = ?)
+         AND WordID NOT IN (SELECT WordID FROM WordProgress WHERE Status = 1);`,
+        [userID, languageID],
+        (_, { rows: { _array: words } }) => {
+          callback(words.length > 0 ? shuffleArray(words) : []);
+        },
+        (_, error) => {
+          console.error("Ошибка при получении новых слов:", error);
+          callback([]);
+        }
+      );
+    },
+    (error) => {
+      console.error("Ошибка транзакции при получении новых слов:", error);
+      callback([]);
+    }
+  );
+};
+
+export const getWordsForReview = async (userID, languageID, callback) => {
+  db.transaction(
+    (tx) => {
+      tx.executeSql(
+        `SELECT * FROM Words w
+         JOIN WordProgress wp ON w.WordID = wp.WordID
+         WHERE wp.firebase_uid = ? AND wp.NextReviewDate <= ? AND w.CategoryID IN 
+         (SELECT CategoryID FROM Categories WHERE LanguageID = ?)
+         ORDER BY wp.NextReviewDate ASC
+         LIMIT 20;`,
+        [userID, new Date().toISOString(), languageID],
+        (_, { rows: { _array: words } }) => {
+          callback(words.length > 0 ? shuffleArray(words) : []);
+        },
+        (_, error) => {
+          console.error("Ошибка при получении слов для повторения:", error);
+          callback([]);
+        }
+      );
+    },
+    (error) => {
+      console.error(
+        "Ошибка транзакции при получении слов для повторения:",
+        error
+      );
+      callback([]);
+    }
+  );
+};
+
+export const updateWordProgress = (wordID, quality) => {
+  db.transaction((tx) => {
+    tx.executeSql(
+      `SELECT * FROM WordProgress WHERE WordID = ? ORDER BY LastSeen DESC LIMIT 1;`,
+      [wordID],
+      (_, { rows: { _array } }) => {
+        if (_array.length > 0) {
+          const progress = _array[0];
+          let { Interval, EaseFactor, Attempts, NextReviewDate } = progress;
+          Attempts += 1;
+          if (quality >= 3) {
+            if (Attempts === 1) {
+              Interval = 1;
+            } else if (Attempts === 2) {
+              Interval = 6;
+            } else {
+              Interval = Math.round(Interval * EaseFactor);
+            }
+            EaseFactor =
+              EaseFactor + 0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02);
+            if (EaseFactor < 1.3) EaseFactor = 1.3;
+            NextReviewDate = new Date();
+            NextReviewDate.setDate(NextReviewDate.getDate() + Interval);
+          } else {
+            Interval = 1;
+            Attempts = 0;
+            NextReviewDate = new Date();
+            NextReviewDate.setDate(NextReviewDate.getDate() + Interval);
+          }
+          tx.executeSql(
+            `UPDATE WordProgress SET Interval = ?, EaseFactor = ?, Attempts = ?, LastSeen = ?, NextReviewDate = ? WHERE WordID = ?;`,
+            [
+              Interval,
+              EaseFactor,
+              Attempts,
+              new Date().toISOString(),
+              NextReviewDate.toISOString(),
+              wordID,
+            ],
+            () =>
+              console.log(
+                `Word progress updated successfully. Next review date: ${NextReviewDate.toISOString()}`
+              ),
+            (_, error) =>
+              console.error("Failed to update word progress:", error)
+          );
+        }
+      }
+    );
+  });
+};
+
+
+export const markWordAsLearned = (wordID, firebaseUid) => {
+  const nextReviewDate = new Date(); // Установим дату следующего повторения на сегодня
+  nextReviewDate.setHours(0, 0, 0, 0);
+
+  db.transaction((tx) => {
+    tx.executeSql(
+      `SELECT * FROM WordProgress WHERE WordID = ?;`,
+      [wordID],
+      (_, { rows: { _array } }) => {
+        if (_array.length === 0) {
+          // Если запись не существует, добавляем новую запись
+          tx.executeSql(
+            `INSERT INTO WordProgress (WordID, firebase_uid, Status, Attempts, LastSeen, NextReviewDate, Interval, EaseFactor)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?);`,
+            [
+              wordID,
+              firebaseUid,
+              1,
+              0,
+              new Date().toISOString(),
+              nextReviewDate.toISOString(),
+              1,
+              2.5,
+            ],
+            (_, result) => {
+              console.log(
+                `Word ${wordID} added to WordProgress with next review date: ${nextReviewDate.toISOString()}`
+              );
+            },
+            (_, error) => {
+              console.error(
+                `Failed to add word ${wordID} to WordProgress:`,
+                error
+              );
+            }
+          );
+        } else {
+          // Если запись существует, обновляем существующую запись
+          tx.executeSql(
+            `UPDATE WordProgress SET Status = 1, NextReviewDate = ? WHERE WordID = ?;`,
+            [nextReviewDate.toISOString(), wordID],
+            (_, result) => {
+              console.log(
+                `Word ${wordID} marked as learned. Next review date: ${nextReviewDate.toISOString()}`
+              );
+            },
+            (_, error) => {
+              console.error(`Failed to mark word ${wordID} as learned:`, error);
+            }
+          );
+        }
+      },
+      (_, error) => {
+        console.error(
+          "Ошибка при проверке существования записи в WordProgress:",
+          error
+        );
+      }
+    );
+  });
+};
+
+export const getAllWordProgress = (callback) => {
+  db.transaction((tx) => {
+    tx.executeSql(
+      `SELECT * FROM WordProgress;`, // Выбираем все данные из таблицы WordProgress
+      [],
+      (_, { rows: { _array } }) => {
+        if (_array.length > 0) {
+          callback(_array); // Возвращаем все записи
+        } else {
+          callback([]);
+        }
+      },
+      (_, error) => {
+        console.error("Ошибка при получении данных из WordProgress:", error);
+        callback([]);
+      }
+    );
+  });
+};
+
+
+export const shuffleArray = (array) => {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]]; // обмен элементами
+  }
+  return array;
+};
+
 export const database = {
   initDB,
   addDefaultCategories,
@@ -589,4 +776,9 @@ export const database = {
   getRandomWordsForCurrentUser,
   exportDatabaseFile,
   moveDatabaseToFileSystem,
+  getNewWordsForCurrentUser,
+  getWordsForReview,
+  updateWordProgress,
+  markWordAsLearned,
+  shuffleArray,
 };

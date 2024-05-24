@@ -42,8 +42,8 @@ const ExampleItemContainer = styled.TouchableOpacity`
   flex-direction: column;
   background-color: #28284b;
   padding: 8px;
-  border-radius:8px;
-  margin:4px;
+  border-radius: 8px;
+  margin: 4px;
 `;
 
 const CategoryTitleContainer = styled.View`
@@ -163,14 +163,7 @@ const buttonData = [
   // Дополнительные элементы данных...
 ];
 
-const CustomButton = ({
-  onPress,
-  title,
-  url,
-  index,
-  totalCount,
-  variant,
-}) => {
+const CustomButton = ({ onPress, title, url, index, totalCount, variant }) => {
   const isFirst = index === 0;
   const isLast = index === totalCount - 1;
   return (
@@ -228,9 +221,9 @@ const WordButton = ({
   const speechPress = (text) => {
     let languageCode = "en-US";
     if (languageID === 2) {
-      languageCode = "de-DE"; 
+      languageCode = "de-DE";
     } else if (languageID === 3) {
-      languageCode = "fr-FR"; 
+      languageCode = "fr-FR";
     }
     Speech.speak(text, {
       language: languageCode, // Установите язык на английский
@@ -257,9 +250,7 @@ const WordButton = ({
   );
 };
 
-
-
-const CustomInput = ({ placeholder, isFirst, isLast,onChangeText,value }) => {
+const CustomInput = ({ placeholder, isFirst, isLast, onChangeText, value }) => {
   return (
     <Input
       placeholder={placeholder}
@@ -272,8 +263,7 @@ const CustomInput = ({ placeholder, isFirst, isLast,onChangeText,value }) => {
   );
 };
 
-const AddExampleButton = ({onPress,title, url }) => {
-  
+const AddExampleButton = ({ onPress, title, url }) => {
   return (
     <ExampleItemContainer onPress={onPress}>
       <ButtonContainerRow>
@@ -357,11 +347,22 @@ const EditCategoryScreen = ({ route, navigation }) => {
 
     if (text.length >= 2) {
       let languagePair = "en-ru"; // Значение по умолчанию
-      if (languageID === 2) {
-        languagePair = "de-ru"; // Немецкий на русский
-      } else if (languageID === 3) {
-        languagePair = "fr-ru"; // Французский на русский
+      if (/[\u0400-\u04FF]/.test(text)) {
+        // Проверка на наличие кириллических символов
+        languagePair = "ru-en";
+        if (languageID === 2) {
+          languagePair = "ru-de"; // Русский на немецкий
+        } else if (languageID === 3) {
+          languagePair = "ru-fr"; // Русский на французский
+        }
+      } else {
+        if (languageID === 2) {
+          languagePair = "de-ru"; // Немецкий на русский
+        } else if (languageID === 3) {
+          languagePair = "fr-ru"; // Французский на русский
+        }
       }
+
       try {
         const response = await fetch(
           `https://dictionary.yandex.net/api/v1/dicservice.json/lookup?key=dict.1.1.20240313T145636Z.36876f40f24f0ebf.035f2b16f1c22383233c8aa31b942111cb419462&lang=${languagePair}&text=${encodeURIComponent(
@@ -405,11 +406,24 @@ const EditCategoryScreen = ({ route, navigation }) => {
     selectedTranscription,
     selectedExamples // Добавьте параметр для примеров
   ) => {
-    setTranslation(
-      Array.isArray(selectedSuggestion)
-        ? selectedSuggestion[0]
-        : selectedSuggestion
-    );
+    // Проверка на язык ввода (русский или английский)
+    if (/[\u0400-\u04FF]/.test(wordText)) {
+      // Если текст содержит кириллические символы, это русское слово
+      setTranslation(wordText); // Установить оригинальное слово как перевод
+      setWordText(
+        Array.isArray(selectedSuggestion)
+          ? selectedSuggestion[0]
+          : selectedSuggestion
+      );
+    } else {
+      // Если текст содержит латинские символы, это английское слово
+      setWordText(
+        Array.isArray(selectedSuggestion)
+          ? selectedSuggestion[0]
+          : selectedSuggestion
+      );
+      setTranslation(wordText); // Установить оригинальное слово как перевод
+    }
     setTranscription(selectedTranscription);
 
     // Установите первый доступный пример и его перевод, если они существуют
@@ -454,7 +468,6 @@ const EditCategoryScreen = ({ route, navigation }) => {
       }
     );
   };
-
 
   const renderButton = (item, index) => (
     <CustomButton
@@ -524,14 +537,14 @@ const EditCategoryScreen = ({ route, navigation }) => {
             placeholder={inputs[1].placeholder}
             isFirst={inputs[1].isFirst}
             isLast={inputs[1].isLast}
-            onChangeText={handleInputChange}
+            onChangeText={setTranscription}
             value={transcription} // Используем транскрипцию для заполнения инпута
           />
           <CustomInput
             placeholder={inputs[2].placeholder}
             isFirst={inputs[2].isFirst}
             isLast={inputs[2].isLast}
-            onChangeText={handleInputChange}
+            onChangeText={setTranslation}
             value={translation} // Используем перевод для заполнения инпута
           />
           {suggestions.length > 0 && (

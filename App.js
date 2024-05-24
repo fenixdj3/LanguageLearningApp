@@ -24,7 +24,6 @@ export default function App() {
   useEffect(() => {
     async function prepare() {
       try {
-        // Загрузка шрифтов и инициализация базы данных
         await database.initDB();
         await database.fetchUsers();
       } catch (e) {
