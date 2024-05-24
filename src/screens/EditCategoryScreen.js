@@ -1,8 +1,3 @@
-/*
-TODO: Доработать заполнения слова в случае ввода в поле Перевода
-FIXME: При вводе в поле перевода не заполняется транскрипция и примеры
-*/
-
 import React, { useEffect, useState } from "react";
 import {
   ScrollView,
@@ -298,7 +293,6 @@ const EditCategoryScreen = ({ route, navigation }) => {
   const [suggestions, setSuggestions] = useState([]); // Состояние для хранения предложенных переводов
   const [exampleText, setExampleText] = useState(""); // Для хранения текста примера
   const [exampleTranslation, setExampleTranslation] = useState(""); // Для хранения перевода примера
-const [activeInput, setActiveInput] = useState("");
 
   useEffect(() => {
     navigation.setOptions({
@@ -348,34 +342,27 @@ const [activeInput, setActiveInput] = useState("");
     setIsExampleVisible(!isExampleVisible);
   };
 
-  const handleTranscriptionChange = (text) => {
-    setTranscription(text);
-  };
-
-  const handleTranslationInputChange = async (text) => {
-    setTranslation(text);
-    setActiveInput("translation");
-    if (text.length >= 2) {
-      let languagePair = "en"; // Значение по умолчанию
-      if (languageID === 2) {
-        languagePair = "de"; // Немецкий на русский
-      } else if (languageID === 3) {
-        languagePair = "fr"; // Французский на русский
-      }
-      updateSuggestions(text, `ru-${languagePair}`);
-    }
-  };
-
-  const handleWordInputChange = async (text) => {
+  const handleInputChange = async (text) => {
     setWordText(text);
-    setActiveInput("word");
+
     if (text.length >= 2) {
       let languagePair = "en-ru"; // Значение по умолчанию
-      if (languageID === 2) {
-        languagePair = "de-ru"; // Немецкий на русский
-      } else if (languageID === 3) {
-        languagePair = "fr-ru"; // Французский на русский
+      if (/[\u0400-\u04FF]/.test(text)) {
+        // Проверка на наличие кириллических символов
+        languagePair = "ru-en";
+        if (languageID === 2) {
+          languagePair = "ru-de"; // Русский на немецкий
+        } else if (languageID === 3) {
+          languagePair = "ru-fr"; // Русский на французский
+        }
+      } else {
+        if (languageID === 2) {
+          languagePair = "de-ru"; // Немецкий на русский
+        } else if (languageID === 3) {
+          languagePair = "fr-ru"; // Французский на русский
+        }
       }
+
       try {
         const response = await fetch(
           `https://dictionary.yandex.net/api/v1/dicservice.json/lookup?key=dict.1.1.20240313T145636Z.36876f40f24f0ebf.035f2b16f1c22383233c8aa31b942111cb419462&lang=${languagePair}&text=${encodeURIComponent(
@@ -384,28 +371,33 @@ const [activeInput, setActiveInput] = useState("");
         );
         const data = await response.json();
 
-      let fetchedSuggestions = [];
-      data.def.forEach((item) => {
-        item.tr.forEach((translation) => {
-          let examples = translation.ex
-            ? translation.ex.map((ex) => ({
-                text: ex.text,
-                translation: ex.tr ? ex.tr[0].text : "",
-              }))
-            : [];
+        let fetchedSuggestions = [];
+        data.def.forEach((item) => {
+          item.tr.forEach((translation) => {
+            let examples = translation.ex
+              ? translation.ex.map((ex) => {
+                  return {
+                    text: ex.text,
+                    translation: ex.tr ? ex.tr[0].text : "", // Assuming only one translation for simplicity
+                  };
+                })
+              : [];
 
-          fetchedSuggestions.push({
-            word: item.text,
-            translation: translation.text,
-            transcription: item.ts || "",
-            examples: examples,
+            fetchedSuggestions.push({
+              word: item.text,
+              translation: translation.text,
+              transcription: item.ts || "",
+              examples: examples, // Changed to 'examples' to include both text and translation
+            });
           });
         });
-      });
 
-      setSuggestions(fetchedSuggestions);
-    } catch (error) {
-      console.error("Ошибка при запросе к API Яндекс.Словарь:", error);
+        setSuggestions(fetchedSuggestions);
+      } catch (error) {
+        console.error("Ошибка при запросе к API Яндекс.Словарь:", error);
+      }
+    } else {
+      setSuggestions([]);
     }
   };
 
@@ -414,11 +406,24 @@ const [activeInput, setActiveInput] = useState("");
     selectedTranscription,
     selectedExamples // Добавьте параметр для примеров
   ) => {
-    setTranslation(
-      Array.isArray(selectedSuggestion)
-        ? selectedSuggestion[0]
-        : selectedSuggestion
-    );
+    // Проверка на язык ввода (русский или английский)
+    if (/[\u0400-\u04FF]/.test(wordText)) {
+      // Если текст содержит кириллические символы, это русское слово
+      setTranslation(wordText); // Установить оригинальное слово как перевод
+      setWordText(
+        Array.isArray(selectedSuggestion)
+          ? selectedSuggestion[0]
+          : selectedSuggestion
+      );
+    } else {
+      // Если текст содержит латинские символы, это английское слово
+      setWordText(
+        Array.isArray(selectedSuggestion)
+          ? selectedSuggestion[0]
+          : selectedSuggestion
+      );
+      setTranslation(wordText); // Установить оригинальное слово как перевод
+    }
     setTranscription(selectedTranscription);
 
     // Установите первый доступный пример и его перевод, если они существуют
@@ -525,21 +530,21 @@ const [activeInput, setActiveInput] = useState("");
             placeholder={inputs[0].placeholder}
             isFirst={inputs[0].isFirst}
             isLast={inputs[0].isLast}
-            onChangeText={handleWordInputChange} // Передаем функцию для обработки изменения текста
+            onChangeText={handleInputChange} // Передаем функцию для обработки изменения текста
             value={wordText} // Передаем текущее значение текста в инпуте
           />
           <CustomInput
             placeholder={inputs[1].placeholder}
             isFirst={inputs[1].isFirst}
             isLast={inputs[1].isLast}
-            onChangeText={handleInputChange}
+            onChangeText={setTranscription}
             value={transcription} // Используем транскрипцию для заполнения инпута
           />
           <CustomInput
             placeholder={inputs[2].placeholder}
             isFirst={inputs[2].isFirst}
             isLast={inputs[2].isLast}
-            onChangeText={handleInputChange}
+            onChangeText={setTranslation}
             value={translation} // Используем перевод для заполнения инпута
           />
           {suggestions.length > 0 && (
