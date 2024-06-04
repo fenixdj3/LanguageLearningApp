@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "LanguageLearningExpoApp",
+    "name": "LanguageApp",
     "slug": "LanguageLearningExpoApp",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/png/logoIcon.png",
     "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash.png",
@@ -19,7 +19,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/png/logoIcon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.fenix232.LanguageLearningExpoApp"

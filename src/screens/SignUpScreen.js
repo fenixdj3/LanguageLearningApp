@@ -185,7 +185,7 @@ function SignUpScreen({ navigation }) {
         <Container>
           <Title>Регистрация</Title>
           <Input
-            placeholder="@username"
+            placeholder="Логин"
             returnKeyType="next"
             value={credentials.username} // Bind the value to the state
             onChangeText={(text) =>
@@ -193,7 +193,7 @@ function SignUpScreen({ navigation }) {
             }
           />
           <Input
-            placeholder="Email Address"
+            placeholder="Почта"
             keyboardType="email-address"
             returnKeyType="next"
             value={credentials.email} // Bind the value to the state
@@ -202,7 +202,7 @@ function SignUpScreen({ navigation }) {
             }
           />
           <Input
-            placeholder="Password"
+            placeholder="Пароль"
             secureTextEntry
             returnKeyType="next"
             value={credentials.password} // Bind the value to the state
@@ -211,7 +211,7 @@ function SignUpScreen({ navigation }) {
             }
           />
           <Input
-            placeholder="Confirm Password"
+            placeholder="Подтверждение пароля"
             secureTextEntry
             returnKeyType="done"
             value={credentials.confirmPassword} // Bind the value to the state
@@ -237,7 +237,7 @@ function SignUpScreen({ navigation }) {
           </CheckboxContainer>
           <Separator />
           <Button onPress={() => handleSignUp(credentials)}>
-            <ButtonText>Sign Up</ButtonText>
+            <ButtonText>Создать аккаунт</ButtonText>
           </Button>
           <Footer>
             <FooterText>Уже есть аккаунт? </FooterText>

@@ -182,7 +182,7 @@ function LoginScreen({ navigation }) {
         <Container>
           <Title>Авторизация</Title>
           <Input
-            placeholder="Email Address"
+            placeholder="Почта"
             keyboardType="email-address"
             returnKeyType="next"
             value={credentials.email} // Bind the value to the state
@@ -191,7 +191,7 @@ function LoginScreen({ navigation }) {
             }
           />
           <Input
-            placeholder="Password"
+            placeholder="Пароль"
             secureTextEntry
             returnKeyType="done"
             value={credentials.password} // Bind the value to the state
