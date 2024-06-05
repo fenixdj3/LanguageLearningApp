@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { Text, View, TouchableOpacity, Image, Button } from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
+import { Text, View, TouchableOpacity, Image } from "react-native";
 import styled from "styled-components/native";
 import Swiper from "react-native-deck-swiper";
 import FlipCard from "react-native-flip-card";
 import * as Speech from "expo-speech";
+import { useFocusEffect } from "@react-navigation/native";
 import useAuth from "../services/useAuth";
 import {
   getNewWordsForCurrentUser,
@@ -55,11 +56,17 @@ const ButtonContainer = styled.View`
   z-index: 20000;
 `;
 
-const StyledButton = styled(Button)`
-  margin: 10px;
+const StyledButton = styled(TouchableOpacity)`
+  margin: 0px;
   padding: 10px;
-  background-color: #556b2f;
+  background-color: ${(props) => (props.selected ? "#894099" : "#383862")};
+  border-radius: 5px;
+`;
+
+const ButtonText = styled.Text`
   color: white;
+  font-size: 16px;
+  text-align: center;
 `;
 
 const speakWord = (word, languageID) => {
@@ -91,7 +98,7 @@ function MenuScreen() {
   const { user } = useAuth();
   const { languageID } = useLanguage();
 
-  const fetchWords = () => {
+  const fetchWords = useCallback(() => {
     if (user && user.uid) {
       if (mode === "new") {
         getNewWordsForCurrentUser(user.uid, languageID, (words) => {
@@ -105,7 +112,7 @@ function MenuScreen() {
         });
       }
     }
-  };
+  }, [user, mode, languageID]);
 
   const handleSwipe = (cardIndex, quality) => {
     const word = cards[cardIndex];
@@ -125,19 +132,15 @@ function MenuScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchWords();
-
-    const interval = setInterval(() => {
+  useFocusEffect(
+    useCallback(() => {
       fetchWords();
-    }, 10000); // Обновляем слова каждые 10 секунд
+    }, [fetchWords])
+  );
 
-    return () => clearInterval(interval); // Очищаем интервал при размонтировании компонента
-  }, [user, mode, languageID]);
-
-  const renderCard = (card) => (
+  const renderCard = (card, index) => (
     <FlipCard
-      key={`flip-card-${card.WordID}-${mode}`} // Используем уникальный идентификатор WordID и режим в качестве ключа
+      key={`flip-card-${card.WordID}-${index}-${mode}-${languageID}-${card.EnglishWord}`} // Используем уникальный идентификатор WordID, индекс, режим, язык и EnglishWord в качестве ключа
       flipHorizontal={true}
       flipVertical={false}
       friction={6}
@@ -172,28 +175,32 @@ function MenuScreen() {
     if (mode === "review" && noWordsForReview) {
       return (
         <Container>
-          <MessageText>No words for review today</MessageText>
+          <MessageText>Сегодня нет слов для повторения</MessageText>
           <StyledButton
-            title="Switch to New Words"
             onPress={() => setMode("new")}
-          />
+            selected={mode === "new"}
+          >
+            <ButtonText>Перейти к новым словам</ButtonText>
+          </StyledButton>
         </Container>
       );
     }
     if (mode === "new" && noWordsForNew) {
       return (
         <Container>
-          <MessageText>No new words to learn today</MessageText>
+          <MessageText>Сегодня нет новых слов для изучения</MessageText>
           <StyledButton
-            title="Switch to Review"
             onPress={() => setMode("review")}
-          />
+            selected={mode === "review"}
+          >
+            <ButtonText>Перейти к повторению слов</ButtonText>
+          </StyledButton>
         </Container>
       );
     }
     return (
       <Container>
-        <Text>Loading cards...</Text>
+        <Text>Загрузка карточек...</Text>
       </Container>
     );
   }
@@ -201,24 +208,28 @@ function MenuScreen() {
   return (
     <Container>
       <ButtonContainer>
+        <StyledButton selected={mode === "new"} onPress={() => setMode("new")}>
+          <ButtonText>Новые слова</ButtonText>
+        </StyledButton>
         <StyledButton
-          title="Switch to New Words"
-          onPress={() => setMode("new")}
-        />
-        <StyledButton
-          title="Switch to Review"
+          selected={mode === "review"}
           onPress={() => setMode("review")}
-        />
+        >
+          <ButtonText>Повторение слов</ButtonText>
+        </StyledButton>
       </ButtonContainer>
       <Swiper
-        key={`swiper-${mode}-${cards.map((card) => card.WordID).join("-")}`} // Используем уникальный идентификатор для режима и WordID карт
+        key={`swiper-${mode}-${languageID}`} // Используем уникальный идентификатор для режима и языка
         cards={cards}
         renderCard={renderCard}
+        cardIndex={0}
+        keyExtractor={(card, cardIndex) =>
+          `card-${card.WordID}-${cardIndex}-${mode}-${languageID}-${card.EnglishWord}`
+        } // Добавляем keyExtractor для уникальных ключей
         onSwipedLeft={(cardIndex) => handleSwipe(cardIndex, 0)}
         onSwipedRight={(cardIndex) => handleSwipe(cardIndex, 5)}
         onSwipedAll={fetchWords}
         verticalSwipe={false}
-        cardIndex={0}
         stackSize={3}
         backgroundColor="transparent"
         stackSeparation={15}

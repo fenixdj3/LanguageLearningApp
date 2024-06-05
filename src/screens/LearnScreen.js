@@ -61,8 +61,9 @@ const ButtonContainer = styled.View`
 const StyledButton = styled(TouchableOpacity)`
   margin: 10px;
   padding: 10px;
-  background-color: #556b2f;
+  background-color: ${(props) => (props.selected ? "#6b8e23" : "#556b2f")};
   border-radius: 5px;
+  width: 40%;
 `;
 
 const ButtonText = styled.Text`
@@ -145,7 +146,7 @@ function LearnScreen() {
 
     const interval = setInterval(() => {
       fetchWords();
-    }, 10000); // Обновляем слова каждые 10 секунд
+    }, 0); // Обновляем слова каждые 10 секунд
 
     return () => clearInterval(interval); // Очищаем интервал при размонтировании компонента
   }, [user, mode, languageID]);
@@ -214,10 +215,13 @@ function LearnScreen() {
   return (
     <Container>
       <ButtonContainer>
-        <StyledButton onPress={() => setMode("new")}>
+        <StyledButton selected={mode === "new"} onPress={() => setMode("new")}>
           <ButtonText>Новые слова</ButtonText>
         </StyledButton>
-        <StyledButton onPress={() => setMode("review")}>
+        <StyledButton
+          selected={mode === "review"}
+          onPress={() => setMode("review")}
+        >
           <ButtonText>Повторение слов</ButtonText>
         </StyledButton>
       </ButtonContainer>
