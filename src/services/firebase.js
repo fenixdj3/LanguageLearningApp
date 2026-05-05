@@ -1,24 +1,34 @@
-import { initializeApp } from "firebase/app";
-import {
-  getAuth,
-  initializeAuth,
-  getReactNativePersistence,
-} from "firebase/auth";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeAuth, getAuth, getReactNativePersistence } from "firebase/auth";
 import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
-// Your web app's Firebase configuration
+import env from "../config/env";
+
 const firebaseConfig = {
-  apiKey: "AIzaSyA2R5hhDDCz3d9fJ1a3lr-evVIiJ4OqzMI",
-  authDomain: "languagelearningexpoapp.firebaseapp.com",
-  projectId: "languagelearningexpoapp",
-  storageBucket: "languagelearningexpoapp.appspot.com",
-  messagingSenderId: "128782869176",
-  appId: "1:128782869176:web:371d7fc3dab7f49c748a4d",
+  apiKey: env.firebaseApiKey,
+  authDomain: env.firebaseAuthDomain,
+  projectId: env.firebaseProjectId,
+  storageBucket: env.firebaseStorageBucket,
+  messagingSenderId: env.firebaseMessagingSenderId,
+  appId: env.firebaseAppId,
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-console.log(app);
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(ReactNativeAsyncStorage),
-});
-export { auth };
+const missingConfig = Object.entries(firebaseConfig)
+  .filter(([, value]) => !value)
+  .map(([key]) => key);
+
+if (missingConfig.length) {
+  throw new Error(`Missing Firebase config values: ${missingConfig.join(", ")}`);
+}
+
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+
+let auth;
+try {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+  });
+} catch {
+  auth = getAuth(app);
+}
+
+export { auth, app };

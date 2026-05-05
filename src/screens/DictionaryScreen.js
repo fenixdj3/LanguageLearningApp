@@ -15,6 +15,7 @@ import useAuth from "../services/useAuth";
 import Modal from "react-native-modal";
 import IconPicker from "../components/IconPicker";
 import { useLanguage } from "../services/LanguageContext";
+import env from "../config/env";
 
 const screenHeight = Dimensions.get("window").height;
 
@@ -216,7 +217,7 @@ const AddCategoryButton = ({ onPress }) => {
       <CategoryRow>
         <CategoryIcon
           source={{
-            uri: "https://firebasestorage.googleapis.com/v0/b/languagelearningexpoapp.appspot.com/o/categoryIcon%2Faddcategory.png?alt=media&token=6b585a46-2e00-456c-ab5f-22b2b1ed7eab",
+            uri: env.addCategoryIconUrl,
           }}
         />
         <CategoryInfo>
@@ -294,7 +295,7 @@ const DictionaryScreen = ({ navigation }) => {
                 >
                   <CategoryIcon
                     source={{
-                      uri: "https://firebasestorage.googleapis.com/v0/b/languagelearningexpoapp.appspot.com/o/categoryIcon%2Fupdate.png?alt=media&token=cb26e5d1-5ecc-43d6-aa0b-61557779c451",
+                      uri: env.updateIconUrl,
                     }}
                   />
                 </TouchableOpacity>
