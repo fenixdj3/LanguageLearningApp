@@ -1,8 +1,9 @@
 import * as SQLite from "expo-sqlite";
 import * as FileSystem from "expo-file-system";
 import defaultWordsData from "./defaultWordsData";
+import env from "../config/env";
 
-export const db = SQLite.openDatabase("LanguageLearning2.db");
+export const db = SQLite.openDatabase(env.sqliteDbName);
 
 export const initDB = () => {
   db.transaction(
@@ -106,19 +107,19 @@ export const addDefaultCategories = (userID, dbTransaction) => {
     {
       name: "Анатомия",
       imageURL:
-        "https://firebasestorage.googleapis.com/v0/b/languagelearningexpoapp.appspot.com/o/categoryIcon%2Fanatomy.png?alt=media&token=ad052311-c378-4cee-8012-30366fd0fdc1",
+        `${env.categoryIconBaseUrl}/anatomy.png`,
       languages: [1, 2, 3], // ID для английского, немецкого и французского языков
     },
     {
       name: "Искусство",
       imageURL:
-        "https://firebasestorage.googleapis.com/v0/b/languagelearningexpoapp.appspot.com/o/categoryIcon%2Fart.png?alt=media&token=7e7d04fd-1f9b-4298-9677-8b60dfa6a5f0",
+        `${env.categoryIconBaseUrl}/art.png`,
       languages: [1, 2, 3],
     },
     {
       name: "Путешествия",
       imageURL:
-        "https://firebasestorage.googleapis.com/v0/b/languagelearningexpoapp.appspot.com/o/categoryIcon%2Ftravel.png?alt=media&token=c04c918f-baf7-4665-8554-2aa1d1fc1c79",
+        `${env.categoryIconBaseUrl}/travel.png`,
       languages: [1, 2, 3],
     },
   ];
@@ -230,7 +231,7 @@ export const fetchCategories = (userID, languageID, callback) => {
       (_, { rows: { _array } }) => {
         const categoriesWithProgress = _array.map((category) => ({
           ...category,
-          icon: `https://storage.googleapis.com/languagelearningexpoapp.appspot.com/categoryIcon/${category.ImageURL}`,
+          icon: `${env.categoryIconBaseUrl}/${category.ImageURL}`,
           Progress:
             category.WordCount > 0
               ? (category.KnownWordsCount / category.WordCount) * 100

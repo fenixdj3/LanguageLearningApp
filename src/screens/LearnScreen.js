@@ -14,6 +14,7 @@ import {
   markWordAsLearning,
 } from "../database/db";
 import { useLanguage } from "../services/LanguageContext";
+import env from "../config/env";
 
 const Container = styled.View`
   flex: 1;
@@ -172,7 +173,7 @@ function LearnScreen() {
         >
           <Image
             source={{
-              uri: "https://firebasestorage.googleapis.com/v0/b/languagelearningexpoapp.appspot.com/o/categoryIcon%2Fspeaking.png?alt=media&token=dfadd67e-3a0e-44b8-bbfd-77baea6a1f4a",
+              uri: env.speakingIconUrl,
             }}
             style={{ width: 50, height: 50 }}
           />

@@ -17,6 +17,7 @@ import {
 import * as Speech from "expo-speech";
 import Modal from "react-native-modal";
 import SuggestionList from "../components/SuggestionList";
+import env from "../config/env";
 
 const screenHeight = Dimensions.get("window").height;
 
@@ -148,17 +149,17 @@ const buttonData = [
   {
     id: "1",
     title: "Очистить категорию",
-    url: "https://firebasestorage.googleapis.com/v0/b/languagelearningexpoapp.appspot.com/o/categoryIcon%2Fcross.png?alt=media&token=f77a920e-ad2f-45bc-b59d-5000f7138474",
+    url: env.crossIconUrl,
   },
   {
     id: "2",
     title: "Удалить категорию",
-    url: "https://firebasestorage.googleapis.com/v0/b/languagelearningexpoapp.appspot.com/o/categoryIcon%2Ftrashcan.png?alt=media&token=290f2e15-e7fd-4ece-9872-53b4177418dd",
+    url: env.trashIconUrl,
   },
   {
     id: "3",
     title: "Добавить слово",
-    url: "https://firebasestorage.googleapis.com/v0/b/languagelearningexpoapp.appspot.com/o/categoryIcon%2Faddcategory.png?alt=media&token=6b585a46-2e00-456c-ab5f-22b2b1ed7eab",
+    url: env.addCategoryIconUrl,
   },
   // Дополнительные элементы данных...
 ];
@@ -241,7 +242,7 @@ const WordButton = ({
         <PlaySpeechButton onPress={() => speechPress(englishWord)}>
           <ButtonIcon
             source={{
-              uri: "https://firebasestorage.googleapis.com/v0/b/languagelearningexpoapp.appspot.com/o/categoryIcon%2Fplay.png?alt=media&token=86dc396c-4d2f-4164-af41-e58be028ce05",
+              uri: env.playIconUrl,
             }}
           />
         </PlaySpeechButton>
@@ -573,7 +574,7 @@ const EditCategoryScreen = ({ route, navigation }) => {
           )}
           <AddExampleButton
             title="Добавить пример"
-            url="https://firebasestorage.googleapis.com/v0/b/languagelearningexpoapp.appspot.com/o/categoryIcon%2Faddcategory.png?alt=media&token=6b585a46-2e00-456c-ab5f-22b2b1ed7eab"
+            url=env.addCategoryIconUrl
             onPress={handleAddExample}
           />
         </ModalContent>
